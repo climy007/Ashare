@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  ashare-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ashare-mcp-server
+    ports:
+      - "3116:3116"
+    environment:
+      - MCP_SERVER_HOST=0.0.0.0
+      - MCP_SERVER_PORT=3116
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3116/mcp').getcode() == 200 or exit(1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - ashare-network
+
+networks:
+  ashare-network:
+    driver: bridge

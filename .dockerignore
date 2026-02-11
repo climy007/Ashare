@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# 文档
+README.md
+docs/
+img/
+
+# Demo
+Demo1.py
+Demo2.py
+MyTT.py
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 日志
+*.log
+
+# 临时文件
+tmp/
+temp/
+.DS_Store
+
+# Worktrees
+.worktrees/
