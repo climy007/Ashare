@@ -5,6 +5,7 @@ import re
 import sys
 import os
 from pathlib import Path
+from datetime import time
 
 # 添加父目录到路径以导入Ashare
 parent_dir = Path(__file__).parent.parent
@@ -148,6 +149,31 @@ def error_response(message: str, details: str = "") -> dict:
     }
 
 
+def get_exchange_and_sessions(normalized_code: str) -> tuple[str, list[tuple[time, time]]]:
+    """根据标准化代码识别交易所及交易时段"""
+    # 当前仅处理A股主板/创业板常见交易时段，SSE/SZSE时段一致
+    sessions = [
+        (time(9, 30), time(11, 30)),
+        (time(13, 0), time(15, 0)),
+    ]
+
+    if normalized_code.startswith("sh"):
+        return "SSE", sessions
+    if normalized_code.startswith("sz"):
+        return "SZSE", sessions
+    return "UNKNOWN", sessions
+
+
+def filter_by_sessions(df, sessions: list[tuple[time, time]]):
+    """按交易时段过滤DataFrame（基于索引时间）"""
+    index_times = df.index.time
+    mask = []
+    for t in index_times:
+        in_session = any(start <= t <= end for start, end in sessions)
+        mask.append(in_session)
+    return df[mask]
+
+
 def get_stock_price(code: str, frequency: str = "1d", count: int = 10, end_date: str = "") -> dict:
     """获取A股股票行情数据
 
@@ -182,3 +208,59 @@ def get_stock_price(code: str, frequency: str = "1d", count: int = 10, end_date:
             "Failed to fetch stock data",
             f"Error: {str(e)}. Please check the stock code and try again."
         )
+
+
+def get_stock_latest(code: str) -> dict:
+    """获取股票最新价格和当日累计成交量（基于1分钟K线）"""
+    valid, result = validate_stock_code(code)
+    if not valid:
+        return error_response(result)
+
+    normalized_code = normalize_stock_code(code)
+    exchange, sessions = get_exchange_and_sessions(normalized_code)
+
+    try:
+        # 240 为A股常规全天分钟数，额外增加缓冲以提高兼容性
+        df = get_price(normalized_code, frequency="1m", count=300)
+    except Exception as e:
+        return error_response(
+            "Failed to fetch latest stock data",
+            f"Error: {str(e)}. Please check the stock code and try again."
+        )
+
+    if df is None or df.empty:
+        return error_response("No data", "No 1m kline data returned for this symbol.")
+
+    # 仅聚合“最新交易日”的分钟数据
+    latest_date = df.index[-1].date()
+    latest_day_df = df[df.index.date == latest_date]
+    if latest_day_df.empty:
+        return error_response("No data", "No intraday data found for latest trading date.")
+
+    # 自动识别交易时段后过滤，若过滤后为空则回退到最新交易日全量数据
+    session_df = filter_by_sessions(latest_day_df, sessions)
+    session_filter_applied = not session_df.empty
+    active_df = session_df if session_filter_applied else latest_day_df
+
+    latest_row = active_df.iloc[-1]
+    latest_price = float(latest_row["close"])
+    latest_volume = float(active_df["volume"].sum())
+    latest_kline_time = active_df.index[-1].isoformat()
+
+    return {
+        "success": True,
+        "data": {
+            "code": code,
+            "exchange": exchange,
+            "date": latest_date.isoformat(),
+            "latest_kline_time": latest_kline_time,
+            "latest_price": latest_price,
+            "latest_volume": latest_volume
+        },
+        "meta": {
+            "frequency": "1m",
+            "volume_scope": "today_cumulative",
+            "session_filter_applied": session_filter_applied,
+            "sessions": ["09:30-11:30", "13:00-15:00"]
+        }
+    }

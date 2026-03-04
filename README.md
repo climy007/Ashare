@@ -19,7 +19,12 @@
 
 * Ashare可以用在任何需要量化研究，量化分析的场合
 
+### 数据更新说明（为什么日线最新只到「前一天」）
 
+日线/周线/月线数据来自新浪、腾讯等免费接口，其**日 K 线通常为 T+1 或收盘后更新**：
+- 盘中或当日收盘后短时间内，接口返回的「最近 N 条日线」里，最后一条多为**前一交易日**；
+- 当天日线一般在 15:00 收盘后才会完整更新，部分接口次日才可见。
+因此**并非本库过滤了今天**，而是上游数据源尚未提供当天日线。若需当日行情，可改用**分钟线**（如 `frequency='15m'`）或收盘后再查日线。
 
 ### 先看一个最简单的例子 [Demo1.py](https://github.com/mpquant/Ashare/blob/main/Demo1.py)
 
@@ -100,6 +105,15 @@ plt.show()
 
 <div  align="center"> <img src="/img/sh_boll.png" width = "960" height = "480" alt="boll" /> </div>
 
+
+### MCP 工具说明
+
+本项目提供 **Ashare MCP Server**，通过 [Model Context Protocol](https://modelcontextprotocol.io/) 暴露 A 股行情接口，供 Cursor 等 AI 客户端调用。部署方式见 [MCP_DOCKER.md](MCP_DOCKER.md)。
+
+| 工具 | 说明 |
+|------|------|
+| **get_stock_price** | 获取 A 股行情 K 线：支持日/周/月/分钟线（`1d`/`1w`/`1M`/`1m`/`5m`/`15m`/`30m`/`60m`），可指定 `code`、`frequency`、`count`、`end_date`。日线多为 T+1，最新一条常为前一交易日。 |
+| **get_stock_latest** | 获取某只股票的**最新价格**与**最新交易日当日累计成交量**。基于 1 分钟 K 线，避免日线 T+1 滞后；自动识别交易所时段（A 股 09:30–11:30、13:00–15:00）后计算当日累计量。参数：`code`（支持 sh600519、sz000001、600519.XSHG、000001.XSHE、600519.SH、000001.SZ）。返回 `data.latest_price`、`data.latest_volume`、`data.latest_kline_time`、`data.date` 等。 |
 
 ----------------------------------------------------
 ### 团队其他开源项目 - 如果本项目能帮助到您，请右上角帮我们点亮 ★star 以示鼓励！
