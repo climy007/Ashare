@@ -248,19 +248,19 @@ def get_stock_latest(code: str) -> dict:
     latest_kline_time = active_df.index[-1].isoformat()
 
     return {
-        "success": True,
-        "data": {
-            "code": code,
-            "exchange": exchange,
-            "date": latest_date.isoformat(),
-            "latest_kline_time": latest_kline_time,
-            "latest_price": latest_price,
-            "latest_volume": latest_volume
-        },
-        "meta": {
-            "frequency": "1m",
-            "volume_scope": "today_cumulative",
-            "session_filter_applied": session_filter_applied,
-            "sessions": ["09:30-11:30", "13:00-15:00"]
-        }
+        # "success": True,
+        # "data": {
+        "code": code,
+        # "exchange": exchange,
+        "date": latest_date.isoformat(),
+        "latest_kline_time": latest_kline_time,
+        "latest_price": latest_price,
+        "latest_volume": latest_volume
+        # },
+        # "meta": {
+        #     "frequency": "1m",
+        #     "volume_scope": "today_cumulative",
+        #     "session_filter_applied": session_filter_applied,
+        #     "sessions": ["09:30-11:30", "13:00-15:00"]
+        # }
     }
